@@ -55,7 +55,7 @@
     <h1>🎮 すいっちの じかんを かちとれ！ </h1>
     <div class="sub-title">★ ステッパー・クエスト ★</div>
     
-    <button class="btn" onclick="startApp()">ぼうけんを はじめる！</button>
+    <button class="btn" id="start-btn" onclick="startApp()">ぼうけんを はじめる！</button>
     
     <div class="gauge-area">
         <div id="count-box">0</div>
@@ -75,6 +75,8 @@
     <div class="pw-box" id="password-display">0000</div>
     <p style="color: #666;">（おうちの人へ：確認したらSwitchの時間を増やしてあげてね）</p>
 </div>
+
+<script>
     // ==========================================
     // ⚙️ 設定：ここを変えるとゲームのルールが変わるよ！
     // ==========================================
@@ -86,31 +88,58 @@
     let currentDirection = "center"; 
     const ANGLE_THRESHOLD = 15; // 傾きの判定角度（度）
 
+    // 最初に画面を初期化
     document.getElementById('left-count').textContent = TARGET_COUNT;
 
-    function startApp() {
-        // iPhone用の許可申請（Androidではスキップされて下のelseに進みます）
-        if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-            DeviceOrientationEvent.requestPermission().then(permissionState => {
-                if (permissionState === 'granted') {
-                    initSensor();
-                } else {
-                    alert("センサーのきょかが ないと うごかないよ！");
+    async function startApp() {
+        // 【重要】Android/PixelおよびiPhone双方で動くように、明示的にセンサー許可をリクエストする処理
+        if (typeof DeviceOrientationEvent !== 'undefined') {
+            // iPhone用の許可申請
+            if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+                try {
+                    const permissionState = await DeviceOrientationEvent.requestPermission();
+                    if (permissionState === 'granted') {
+                        initSensor();
+                    } else {
+                        alert("センサーのきょかが ないと うごかないよ！");
+                    }
+                } catch (error) {
+                    console.error(error);
                 }
-            }).catch(console.error);
+            } else {
+                // Android(Pixel)用の許可申請
+                // 特殊なパーミッションAPIが存在するか確認し、なければ直接イベント登録を試みる
+                if (navigator.permissions && navigator.permissions.query) {
+                    try {
+                        const result = await navigator.permissions.query({ name: 'accelerometer' });
+                        if (result.state === 'granted' || result.state === 'prompt') {
+                            initSensor();
+                        } else {
+                            alert("ブラウザの設定でセンサーを許可してください");
+                        }
+                    } catch (e) {
+                        // 特殊なクエリに対応していないブラウザの場合はそのまま登録
+                        initSensor();
+                    }
+                } else {
+                    initSensor();
+                }
+            }
         } else {
-            // Pixel(Android)は直接ここが実行されます
-            initSensor();
+            alert("このスマホはセンサーに対応していない可能性があります");
         }
     }
 
     function initSensor() {
         window.addEventListener('deviceorientation', handleOrientation, true);
         document.getElementById('cheer-msg').textContent = "レッツ・ステップ！ふみだそう！";
+        // ボタンを無効化して多重スタートを防ぐ
+        document.getElementById('start-btn').disabled = true;
+        document.getElementById('start-btn').style.opacity = "0.5";
+        document.getElementById('start-btn').textContent = "そくていちゅう…";
     }
 
     function handleOrientation(event) {
-        // AndroidとiPhoneの両方で「左右の傾き」を正しく取得するための処理
         let gamma = event.gamma; 
         if (gamma === null || gamma === undefined) return;
 
@@ -129,6 +158,7 @@
     }
 
     function processStep(now) {
+        // 0.6秒より速いステップの時は警告を出し、カウントしない
         if (lastStepTime !== 0 && (now - lastStepTime) < 600) {
             showWarning();
             lastStepTime = now; 
@@ -152,6 +182,7 @@
 
     function updateCheerMessage() {
         let progress = stepCount / TARGET_COUNT;
+
         if (progress >= 0.75) {
             document.getElementById('cheer-msg').innerHTML = "🔥 あとちょっと！ラストスパートだ！ 🔥";
         } else if (progress >= 0.5) {
@@ -177,3 +208,6 @@
         let randomPin = Math.floor(1000 + Math.random() * 9000);
         document.getElementById('password-display').textContent = "【 " + randomPin + " 】";
     }
+</script>
+</body>
+</html>
