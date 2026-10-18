@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ステッパー・クエスト！レベル２</title>
+    <title>ステッパー・クエスト！レベル３</title>
     <style>
         body { 
             text-align: center; 
@@ -158,8 +158,8 @@
     }
 
     function processStep(now) {
-        // 0.6秒より速いステップの時は警告を出し、カウントしない
-        if (lastStepTime !== 0 && (now - lastStepTime) < 600) {
+        // 0.5秒より速いステップの時は警告を出し、カウントしない
+        if (lastStepTime !== 0 && (now - lastStepTime) < 500) {
             showWarning();
             lastStepTime = now; 
             return;
